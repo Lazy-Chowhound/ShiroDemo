@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.shirodemo.Dao.userDao">
+
+    <resultMap id="permissionMap" type="com.example.shirodemo.Entity.Permission">
+        <id property="id" column="id"></id>
+        <result property="permissionName" column="permission_name"></result>
+        <result property="moduleId" column="module_id"></result>
+        <result property="actionId" column="action_id"></result>
+    </resultMap>
+
+    <resultMap id="roleMap" type="com.example.shirodemo.Entity.Role">
+        <id property="id" column="id"></id>
+        <result property="roleName" column="role_name"></result>
+        <collection property="permissions" ofType="com.example.shirodemo.Entity.Permission" column="id"
+                    resultMap="permissionMap">
+        </collection>
+    </resultMap>
+
+    <resultMap id="userMap" type="com.example.shirodemo.Entity.User">
+        <id property="id" column="id"></id>
+        <result property="name" column="name"></result>
+        <result property="password" column="password"></result>
+        <collection property="roles" ofType="com.example.shirodemo.Entity.Role" column="id" resultMap="roleMap">
+        </collection>
+    </resultMap>
+
+    <select id="getUserInfoByName" resultType="com.example.shirodemo.Entity.User">
+        select id, name, password
+        from shiro.user
+        where name = #{userName};
+    </select>
+
+    <select id="getUserPermissions" resultMap="permissionMap">
+        select p.id, p.permission_name, p.module_id, p.action_id
+        from shiro.user u
+                 join shiro.role r on json_contains(u.role, cast(r.id as char))
+                 join shiro.permission p on json_contains(r.permissions, cast(p.id as char))
+        where u.name = #{userName}
+    </select>
+
+    <select id="getUserRoles" resultType="com.example.shirodemo.Entity.Role">
+        select r.id, r.role_name as roleName
+        from shiro.user u
+                 join shiro.role r on json_contains(u.role, cast(r.id as char))
+        where u.name = #{userName}
+    </select>
+</mapper>
