@@ -6,6 +6,7 @@ import org.apache.shiro.spring.security.interceptor.AuthorizationAttributeSource
 import org.apache.shiro.spring.web.ShiroFilterFactoryBean;
 import org.apache.shiro.web.mgt.DefaultWebSecurityManager;
 import org.springframework.aop.framework.autoproxy.DefaultAdvisorAutoProxyCreator;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
@@ -39,7 +40,7 @@ public class ShiroConfig {
         // 未认证时跳转的url
         factoryBean.setLoginUrl("/user/notAllowed");
 
-        //添加自定义filter
+        // 添加自定义filter
         Map<String, Filter> filters = new HashMap<>();
         filters.put("accessFilter", accessFilter);
         factoryBean.setFilters(filters);
@@ -49,13 +50,23 @@ public class ShiroConfig {
         filterChainDefinitionMap.put("/user/login", "anon");
         filterChainDefinitionMap.put("/user/register", "anon");
         filterChainDefinitionMap.put("/user/display", "authc");
-        //使用自定义filter
-        //filterChainDefinitionMap.put("/**", "accessFilter");
+        // 使用自定义filter []里为需要的角色权限，可不写
+        filterChainDefinitionMap.put("/user/area", "accessFilter[ROOT,R6]");
         factoryBean.setFilterChainDefinitionMap(filterChainDefinitionMap);
 
         factoryBean.setSuccessUrl("/user/homepage");
 
         return factoryBean;
+    }
+
+    /**
+     * 取消自动注册自定义filter
+     */
+    @Bean
+    public FilterRegistrationBean<AccessFilter> oAuth2FilterRegistration(AccessFilter accessFilter) {
+        FilterRegistrationBean<AccessFilter> filterRegistrationBean = new FilterRegistrationBean<>(accessFilter);
+        filterRegistrationBean.setEnabled(false);
+        return filterRegistrationBean;
     }
 
     // 如果@RequiresAuthentication和@RequiresPermissions不生效 添加下面三个函数

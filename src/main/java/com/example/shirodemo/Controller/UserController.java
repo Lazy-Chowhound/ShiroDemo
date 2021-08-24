@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
+import java.sql.ResultSet;
 
 /**
  * @author Nakano Miku
@@ -27,15 +28,17 @@ public class UserController {
     @PostMapping("/login")
     public Result login(@RequestBody @Valid LoginForm loginForm) {
         Subject subject = SecurityUtils.getSubject();
-
-        if (!subject.isAuthenticated()) {
-            String userName = loginForm.getName();
-            String password = loginForm.getPassword();
-            String token = jwtUtil.createToken(userName, password);
-            AccessToken accessToken = new AccessToken(token);
-            subject.login(accessToken);
+        if (subject.isAuthenticated()) {
+            return Result.success("已经登录，请先退出当前帐号再登录", null);
         }
-        return Result.success("login success!", subject.getPrincipal());
+        String userName = loginForm.getName();
+        String password = loginForm.getPassword();
+        String token = jwtUtil.createToken(userName, password);
+        System.out.println(token);
+        AccessToken accessToken = new AccessToken(token);
+        subject.login(accessToken);
+
+        return Result.success("login success!", token);
     }
 
     /**
@@ -60,6 +63,12 @@ public class UserController {
     public Result get() {
         String userName = (String) SecurityUtils.getSubject().getPrincipal();
         return Result.success("以下是您的用户名", userName);
+    }
+
+    @GetMapping("/area")
+    public Result area() {
+        String userName = (String) SecurityUtils.getSubject().getPrincipal();
+        return Result.success("欢迎来到我的领域," + userName, null);
     }
 
     /**
