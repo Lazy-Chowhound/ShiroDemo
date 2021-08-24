@@ -4,7 +4,6 @@ import cn.hutool.core.util.StrUtil;
 
 import com.auth0.jwt.exceptions.TokenExpiredException;
 import org.apache.http.HttpStatus;
-import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.authc.AuthenticationException;
 import org.apache.shiro.authc.AuthenticationToken;
 import org.apache.shiro.subject.Subject;
@@ -17,7 +16,6 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.util.concurrent.TimeUnit;
 
 
 /**
@@ -33,7 +31,7 @@ public class AccessFilter extends AuthenticatingFilter {
      * executeLogin会调用此方法生成login时所需的token
      */
     @Override
-    protected AuthenticationToken createToken(ServletRequest servletRequest, ServletResponse servletResponse) throws Exception {
+    protected AuthenticationToken createToken(ServletRequest servletRequest, ServletResponse servletResponse){
         String token = getToken(servletRequest);
         if (StrUtil.isBlank(token)) {
             return null;
