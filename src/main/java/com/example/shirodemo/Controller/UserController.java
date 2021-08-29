@@ -13,7 +13,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
-import java.sql.ResultSet;
 
 /**
  * @author Nakano Miku
@@ -83,7 +82,7 @@ public class UserController {
 
     @GetMapping("/notAllowed")
     public Result ban() {
-        return Result.fail("尚未登录", null);
+        return Result.fail("not allowed,尚未登录", null);
     }
 
     @GetMapping("/homepage")

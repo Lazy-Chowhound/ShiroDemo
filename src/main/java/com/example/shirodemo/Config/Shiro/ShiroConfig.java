@@ -37,8 +37,9 @@ public class ShiroConfig {
     public ShiroFilterFactoryBean shiroFilterFactoryBean(SecurityManager securityManager, AccessFilter accessFilter) {
         ShiroFilterFactoryBean factoryBean = new ShiroFilterFactoryBean();
         factoryBean.setSecurityManager(securityManager);
-        // 未认证时跳转的url
+        // 未认证时跳转的url,应该是针对authc过滤器
         factoryBean.setLoginUrl("/user/notAllowed");
+        factoryBean.setSuccessUrl("/user/homepage");
 
         // 添加自定义filter
         Map<String, Filter> filters = new HashMap<>();
@@ -54,8 +55,6 @@ public class ShiroConfig {
         filterChainDefinitionMap.put("/user/area", "accessFilter[ROOT,R6]");
         factoryBean.setFilterChainDefinitionMap(filterChainDefinitionMap);
 
-        factoryBean.setSuccessUrl("/user/homepage");
-
         return factoryBean;
     }
 
@@ -63,7 +62,7 @@ public class ShiroConfig {
      * 取消自动注册自定义filter
      */
     @Bean
-    public FilterRegistrationBean<AccessFilter> oAuth2FilterRegistration(AccessFilter accessFilter) {
+    public FilterRegistrationBean<AccessFilter> accessFilterRegistration(AccessFilter accessFilter) {
         FilterRegistrationBean<AccessFilter> filterRegistrationBean = new FilterRegistrationBean<>(accessFilter);
         filterRegistrationBean.setEnabled(false);
         return filterRegistrationBean;

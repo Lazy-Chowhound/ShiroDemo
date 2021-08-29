@@ -1,7 +1,6 @@
 package com.example.shirodemo.Config.Shiro;
 
 import cn.hutool.core.util.StrUtil;
-
 import com.auth0.jwt.exceptions.TokenExpiredException;
 import org.apache.http.HttpStatus;
 import org.apache.shiro.authc.AuthenticationException;
@@ -80,7 +79,7 @@ public class AccessFilter extends AuthenticatingFilter {
         Subject subject = getSubject(servletRequest, servletResponse);
         // 没登录则登录
         if (!subject.isAuthenticated()) {
-            //查看redis令牌有无过期
+            //查看token有无过期
             String token = getToken(servletRequest);
             try {
                 jwtUtil.verifyToken(token);
