@@ -10,9 +10,12 @@ import org.apache.shiro.authz.annotation.RequiresPermissions;
 import org.apache.shiro.authz.annotation.RequiresRoles;
 import org.apache.shiro.subject.Subject;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author Nakano Miku
@@ -24,6 +27,12 @@ public class UserController {
     @Autowired
     private JwtUtil jwtUtil;
 
+    @Value("${jwt.token.expireTime}")
+    private int expireTime;
+
+    @Autowired
+    private RedisTemplate<String, String> redisTemplate;
+
     @PostMapping("/login")
     public Result login(@RequestBody @Valid LoginForm loginForm) {
         Subject subject = SecurityUtils.getSubject();
@@ -33,7 +42,10 @@ public class UserController {
         String userName = loginForm.getName();
         String password = loginForm.getPassword();
         String token = jwtUtil.createToken(userName, password);
-        System.out.println(token);
+
+        // token存入redis
+        redisTemplate.opsForValue().set(token, userName, expireTime, TimeUnit.DAYS);
+
         AccessToken accessToken = new AccessToken(token);
         subject.login(accessToken);
 
