@@ -25,8 +25,20 @@ public class JwtUtil {
     @Value("${jwt.token.expireTime}")
     private int expireTime;
 
-    public String createToken(String userName, String password) {
+    @Value("${jwt.token.refreshTime}")
+    private int refreshTime;
+
+    public String createUserToken(String userName, String password) {
         Date expireDay = DateUtil.offset(new Date(), DateField.DAY_OF_YEAR, expireTime);
+        Algorithm algorithm = Algorithm.HMAC512(secretKey);
+        JWTCreator.Builder builder = JWT.create();
+        return builder.withClaim("userName", userName).withClaim("password", password)
+                .withExpiresAt(expireDay)
+                .sign(algorithm);
+    }
+
+    public String createRefreshToken(String userName, String password) {
+        Date expireDay = DateUtil.offset(new Date(), DateField.DAY_OF_YEAR, refreshTime);
         Algorithm algorithm = Algorithm.HMAC512(secretKey);
         JWTCreator.Builder builder = JWT.create();
         return builder.withClaim("userName", userName).withClaim("password", password)

@@ -2,12 +2,16 @@ package com.example.shirodemo.Config.Shiro;
 
 import cn.hutool.core.util.StrUtil;
 import com.auth0.jwt.exceptions.TokenExpiredException;
+import com.example.shirodemo.Common.Util.HttpServletWrapper;
+import com.example.shirodemo.Service.userService;
 import org.apache.http.HttpStatus;
 import org.apache.shiro.authc.AuthenticationException;
 import org.apache.shiro.authc.AuthenticationToken;
 import org.apache.shiro.subject.Subject;
 import org.apache.shiro.web.filter.authc.AuthenticatingFilter;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.RequestMethod;
 
@@ -15,6 +19,7 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.util.concurrent.TimeUnit;
 
 
 /**
@@ -26,12 +31,22 @@ public class AccessFilter extends AuthenticatingFilter {
     @Autowired
     private JwtUtil jwtUtil;
 
+    @Autowired
+    private RedisTemplate<String, String> redisTemplate;
+
+    @Autowired
+    private userService userService;
+
+    @Value("${jwt.token.refreshTime}")
+    private int refreshTime;
+
     /**
      * executeLogin会调用此方法生成login时所需的token
      */
     @Override
-    protected AuthenticationToken createToken(ServletRequest servletRequest, ServletResponse servletResponse){
-        String token = getToken(servletRequest);
+    protected AuthenticationToken createToken(ServletRequest servletRequest, ServletResponse servletResponse) {
+        String token = getUserToken(servletRequest);
+        System.out.println(token);
         if (StrUtil.isBlank(token)) {
             return null;
         }
@@ -77,23 +92,40 @@ public class AccessFilter extends AuthenticatingFilter {
         httpServletResponse.setHeader("Access-Control-Allow-Credentials", "true");
 
         Subject subject = getSubject(servletRequest, servletResponse);
-        // 没登录则登录
+        // 没登录则尝试登录
         if (!subject.isAuthenticated()) {
+            String token = getUserToken(servletRequest);
+            String userName = jwtUtil.getUserName(token);
+            String password = userService.getUserInfoByName(userName).getPassword();
             //查看token有无过期
-            String token = getToken(servletRequest);
             try {
                 jwtUtil.verifyToken(token);
             } catch (TokenExpiredException expiredException) {
-                httpServletResponse.setStatus(HttpStatus.SC_UNAUTHORIZED);
-                httpServletResponse.getWriter().print("token已过期");
-                return false;
+                // 如果用户token过期，redis里refreshToken也过期，则重新登录
+                if (!redisTemplate.hasKey(userName)) {
+                    httpServletResponse.setStatus(HttpStatus.SC_UNAUTHORIZED);
+                    httpServletResponse.getWriter().print("token已过期,请重新登录");
+                    return false;
+                }
             } catch (Exception exception) {
                 httpServletResponse.setStatus(HttpStatus.SC_UNAUTHORIZED);
                 httpServletResponse.getWriter().print("无效的token");
                 return false;
             }
-            // 没过期则用传过来的token登录
-            return executeLogin(servletRequest, servletResponse);
+            System.out.println("oldtoken:" + token);
+            // redis里token没过期，则生成新的用户token和refreshToken，再用新token登录
+            String newUserToken = jwtUtil.createUserToken(userName, password);
+            // 新生成的用户token返回给用户
+            httpServletResponse.setHeader("token", newUserToken);
+            // 将新生成的token写入request
+            HttpServletWrapper httpServletWrapper = new HttpServletWrapper((HttpServletRequest) servletRequest, newUserToken);
+
+            //生成新的refreshToken，刷新过期时间，存入redis
+            String newRefreshToken = jwtUtil.createRefreshToken(userName, password);
+            redisTemplate.delete(userName);
+            redisTemplate.opsForValue().set(userName, newRefreshToken, refreshTime, TimeUnit.DAYS);
+
+            return executeLogin(httpServletWrapper, servletResponse);
         }
         httpServletResponse.setStatus(HttpStatus.SC_UNAUTHORIZED);
         httpServletResponse.getWriter().print("没有相关权限");
@@ -123,7 +155,7 @@ public class AccessFilter extends AuthenticatingFilter {
     /**
      * 获取token
      */
-    private String getToken(ServletRequest servletRequest) {
+    private String getUserToken(ServletRequest servletRequest) {
         HttpServletRequest httpServletRequest = (HttpServletRequest) servletRequest;
         String token = httpServletRequest.getHeader("token");
         if (StrUtil.isBlank(token)) {

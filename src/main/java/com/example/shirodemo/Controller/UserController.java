@@ -30,6 +30,9 @@ public class UserController {
     @Value("${jwt.token.expireTime}")
     private int expireTime;
 
+    @Value("${jwt.token.refreshTime}")
+    private int refreshTime;
+
     @Autowired
     private RedisTemplate<String, String> redisTemplate;
 
@@ -41,10 +44,11 @@ public class UserController {
         }
         String userName = loginForm.getName();
         String password = loginForm.getPassword();
-        String token = jwtUtil.createToken(userName, password);
+        String token = jwtUtil.createUserToken(userName, password);
+        String refreshToken = jwtUtil.createRefreshToken(userName, password);
 
         // token存入redis
-        redisTemplate.opsForValue().set(token, userName, expireTime, TimeUnit.DAYS);
+        redisTemplate.opsForValue().set(userName, refreshToken, refreshTime, TimeUnit.DAYS);
 
         AccessToken accessToken = new AccessToken(token);
         subject.login(accessToken);
