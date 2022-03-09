@@ -53,7 +53,7 @@ public class UserRealm extends AuthorizingRealm {
 
     /**
      * 授权
-     * 调用@RequiresPermissions @RequiresRoles subject.hasRole subject.isPermitted等需要角色权限时调用
+     * 调用 @RequiresPermissions @RequiresRoles subject.hasRole subject.isPermitted等需要角色权限时调用
      */
     @Override
     protected AuthorizationInfo doGetAuthorizationInfo(PrincipalCollection principalCollection) {
